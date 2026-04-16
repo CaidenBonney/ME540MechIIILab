@@ -1,55 +1,59 @@
-# Prerequisites
+# ===== Prerequisites =====
 *.d
 
-# Object files
+# ===== Object files =====
 *.o
-*.ko
 *.obj
 *.elf
 
-# Linker output
-*.ilk
+# ===== Linker output =====
 *.map
-*.exp
+*.hex
+*.bin
+*.list
 
-# Precompiled Headers
+# ===== Precompiled Headers =====
 *.gch
 *.pch
 
-# Libraries
+# ===== Libraries =====
 *.lib
 *.a
-*.la
-*.lo
 
-# Shared objects (inc. Windows DLLs)
+# ===== Shared objects (cross-platform) =====
 *.dll
 *.so
-*.so.*
 *.dylib
 
-# Executables
+# ===== Executables =====
 *.exe
 *.out
-*.app
-*.i*86
-*.x86_64
-*.hex
 
-# Debug files
-*.dSYM/
+# ===== Debug / analysis files =====
 *.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# debug information files
 *.dwo
+
+# ===== STM32CubeIDE build directories =====
+Debug/
+Release/
+build/
+
+# ===== STM32CubeIDE project settings =====
+# Keep for team use:
+# .project
+# .cproject
+.settings/
+
+# ===== Workspace-level files =====
+.metadata/
+
+# ===== Logs / temp =====
+*.log
+*~
+
+# ===== VS Code =====
+.vscode/
+
+# ===== OS-generated files =====
+.DS_Store
+Thumbs.db
