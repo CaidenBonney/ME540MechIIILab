@@ -53,6 +53,7 @@ build/
 
 # ===== VS Code =====
 .vscode/
+.clang-format
 
 # ===== OS-generated files =====
 .DS_Store
