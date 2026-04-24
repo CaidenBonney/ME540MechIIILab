@@ -25,6 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -49,10 +50,10 @@ TIM_HandleTypeDef htim4;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-int8_t state = 0;
+uint8_t state = 0;
 char buffer[1];
-int8_t cmd_index = 0;
-char cmd[7] = {'\0', '\0', '\0', '\0', '\0', '\0', '\0'};
+uint8_t cmd_index = 0;
+char cmd[7] = "";
 int8_t cmd_vel;
 int8_t velocity1 = 50;
 int8_t velocity2 = 50;
@@ -68,7 +69,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 int hex_char_to_int(char c);
-int hex2_to_int(char high, char low, int8_t *result);
+int hex2_to_int(char high, char low, int8_t* result);
 void print_char(char c);
 void print_str_w_r(char* str, uint8_t str_len);
 /* USER CODE END PFP */
@@ -120,81 +121,101 @@ int main(void) {
   /* USER CODE BEGIN WHILE */
   while (1) {
     switch (state) {
-    case 0: // Init
-      motor_driver_t motor_driver1;
-      motor_driver_t motor_driver2;
-      motor_driver_init(&motor_driver1, &htim4, TIM_CHANNEL_1, TIM_CHANNEL_2, false, 0);
-      motor_driver_init(&motor_driver2, &htim4, TIM_CHANNEL_3, TIM_CHANNEL_4, false, 0);
-      state = 1;
-      break;
-    case 1: // Waiting for user input
-      HAL_UART_Receive(&huart2, (uint8_t*) buffer, 1, 100);
-      if (buffer[0] == '\b' && cmd_index > 0) {
-        buffer[0] = '\0';
-        cmd_index--;
-        cmd[cmd_index] = '\0';
-        print_str_w_r(cmd, cmd_index);
-        break;
-      }
-      switch (cmd_index) {
-      case 0:
-        if (buffer[0] == 'M') {
-          cmd[cmd_index] = buffer[0];
-          buffer[0] = '\0';
-          cmd_index++;
-          print_str_w_r(cmd, cmd_index);
-        }
-        break;
-      case 1:
-        if (buffer[0] == '1' || buffer[0] == '2') {
-          cmd[cmd_index] = buffer[0];
-          buffer[0] = '\0';
-          cmd_index++;
-          print_str_w_r(cmd, cmd_index);
-        }
-        break;
-      case 2:
-      case 3:
-        if ((buffer[0] >= '0' && buffer[0] <= '9') || (buffer[0] >= 'A' && buffer[0] <= 'F') ||
-            (buffer[0] >= 'a' && buffer[0] <= 'f')) {
-          cmd[cmd_index] = buffer[0];
-          buffer[0] = '\0';
-          cmd_index++;
-          print_str_w_r(cmd, cmd_index);
-        }
-        break;
-      case 4:
-        if (buffer[0] == '\r' || buffer[0] == '\n') {
-          buffer[0] = '\0';
-          cmd[4] = '\r';
-          cmd[5] = '\n';
-          cmd_index = 6;
-          state = 2;
-          print_str_w_r(cmd, cmd_index);
-        }
-        break;
-      }
-      break;
-    case 2: // decode input cmd
-      if (hex2_to_int(cmd[2], cmd[3], &cmd_vel) == 0) { // successful conversion
-        // what do if cmd_vel is good?
-      } else {
-        // what do if cmd_vel is bad?
-        print_buf_len = snprintf(print_buf, 100, "Invalid velocity value\n\r");
-        HAL_UART_Transmit(&huart2, print_buf, print_buf_len, 100);
+      case 0: // Init
+        motor_driver_t motor_driver1;
+        motor_driver_t motor_driver2;
+        motor_driver_init(&motor_driver1, &htim4, TIM_CHANNEL_1, TIM_CHANNEL_2, false, 0);
+        motor_driver_init(&motor_driver2, &htim4, TIM_CHANNEL_3, TIM_CHANNEL_4, false, 0);
         state = 1;
-      }
-
-      motor_driver_set_velocity(&motor_driver1, velocity1); // Update Duty Cycle
-      motor_driver_enable(&motor_driver1);
-      HAL_Delay(1000);
-      motor_driver_disable(&motor_driver1);
-      motor_driver_set_velocity(&motor_driver2, velocity2); // Update Duty Cycle
-      motor_driver_enable(&motor_driver2);
-      HAL_Delay(1000);
-      motor_driver_disable(&motor_driver2);
-      state = 1;
-      break;
+        break;
+      case 1: // Waiting for user input
+        HAL_UART_Receive(&huart2, (uint8_t*)buffer, 1, 100);
+        if (buffer[0] == '\0') {
+          // no input received, just continue waiting
+          break;
+        }
+        if (buffer[0] == '\b' && cmd_index > 0) {
+          buffer[0] = '\0';
+          cmd_index--;
+          cmd[cmd_index] = '\0';
+          print_str_w_r(cmd, cmd_index);
+          break;
+        }
+        switch (cmd_index) {
+          case 0:
+            if (buffer[0] == 'M') {
+              cmd[cmd_index] = buffer[0];
+              cmd_index++;
+              print_str_w_r(cmd, cmd_index);
+            }
+            break;
+          case 1:
+            if (buffer[0] == '1' || buffer[0] == '2') {
+              cmd[cmd_index] = buffer[0];
+              cmd_index++;
+              print_str_w_r(cmd, cmd_index);
+            }
+            break;
+          case 2:
+          case 3:
+            if ((buffer[0] >= '0' && buffer[0] <= '9') || (buffer[0] >= 'A' && buffer[0] <= 'F') ||
+                (buffer[0] >= 'a' && buffer[0] <= 'f')) {
+              cmd[cmd_index] = buffer[0];
+              cmd_index++;
+              print_str_w_r(cmd, cmd_index);
+            }
+            break;
+          case 4:
+            if (buffer[0] == '\r' || buffer[0] == '\n') {
+              cmd[4] = '\r';
+              cmd[5] = '\n';
+              cmd_index = 6;
+              state = 2;
+              print_str_w_r(cmd, cmd_index);
+            }
+            break;
+          default:
+            // invalid case for cmd_index do nothing
+            break;
+        }
+        buffer[0] = '\0'; // reset buffer to null after processing input
+        break;
+      case 2: // decode input cmd
+        if (hex2_to_int(cmd[2], cmd[3], &cmd_vel) == 0) { // successful conversion
+          // cmd_vel is good
+          // decode input cmd
+          if (cmd[0] == 'M') {
+            if (cmd[1] == '1') {
+              // update motor_driver1 duty cycle
+              motor_driver_set_velocity(&motor_driver1, cmd_vel);
+              if (cmd_vel == -128) {
+                // if cmd is 0xF0 brake motor_driver1 (0x00 is coast mode by default)
+                motor_driver_disable(&motor_driver1);
+              } else {
+                motor_driver_enable(&motor_driver1);
+              }
+            } else if (cmd[1] == '2') {
+              // update motor_driver2 duty cycle
+              motor_driver_set_velocity(&motor_driver2, cmd_vel);
+              if (cmd_vel == -128) {
+                // if cmd is 0xF0 brake motor_driver2 (0x00 is coast mode by default)
+                motor_driver_disable(&motor_driver2);
+              } else {
+                motor_driver_enable(&motor_driver2);
+              }
+            }
+          }
+        } else {
+          // cmd_vel is bad
+          // print error message (should never run)
+          print_buf_len = snprintf(print_buf, 100, "Invalid velocity value\n\r");
+          HAL_UART_Transmit(&huart2, (uint8_t*)print_buf, print_buf_len, 100);
+        }
+        // prevous cmd processed, reset back to waiting for inputs
+        memset(cmd, '\0', sizeof(cmd)); // reset cmd
+        cmd_index = 0; // reset cmd_index
+        state = 1; // return to waiting for inputs
+        break;
     }
     /* USER CODE END WHILE */
 
@@ -358,7 +379,7 @@ int hex_char_to_int(char c) {
   return -1; // invalid character
 }
 
-int hex2_to_int(char high, char low, int8_t *result) {
+int hex2_to_int(char high, char low, int8_t* result) {
   int8_t hi = hex_char_to_int(high);
   int8_t lo = hex_char_to_int(low);
 
@@ -371,13 +392,13 @@ int hex2_to_int(char high, char low, int8_t *result) {
 }
 void print_char(char c) {
   print_buf_len = snprintf(print_buf, 100, "%c", c);
-  HAL_UART_Transmit(&huart2, print_buf, print_buf_len, 100);
+  HAL_UART_Transmit(&huart2, (uint8_t*)print_buf, print_buf_len, 100);
 }
 
 void print_str_w_r(char* str, uint8_t str_len) {
   print_char('\r');
   print_buf_len = snprintf(print_buf, 100, "%.*s", 6, str);
-  HAL_UART_Transmit(&huart2, print_buf, print_buf_len, 100);
+  HAL_UART_Transmit(&huart2, (uint8_t*)print_buf, print_buf_len, 100);
 }
 
 /* USER CODE END 4 */
@@ -402,7 +423,7 @@ void Error_Handler(void) {
  * @param  line: assert_param error line source number
  * @retval None
  */
-void assert_failed(uint8_t *file, uint32_t line) {
+void assert_failed(uint8_t* file, uint32_t line) {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line
      number, ex: printf("Wrong parameters value: file %s on line %d\r\n", file,
