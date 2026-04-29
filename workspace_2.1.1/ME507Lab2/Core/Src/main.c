@@ -71,6 +71,7 @@ static void MX_TIM4_Init(void);
 int hex_char_to_int(char c);
 int hex2_to_int(char high, char low, int8_t* result);
 void print_char(char c);
+void print_str(char* str);
 void print_str_w_r(char* str, uint8_t str_len);
 /* USER CODE END PFP */
 
@@ -134,9 +135,11 @@ int main(void) {
           // no input received, just continue waiting
           break;
         }
-        if (buffer[0] == '\b' && cmd_index > 0) {
+        if ((buffer[0] == '\b' || buffer[0] == 0x7F) && cmd_index > 0) { // backspace or delete
           buffer[0] = '\0';
           cmd_index--;
+          cmd[cmd_index] = 0x20;
+          print_str_w_r(cmd, cmd_index);
           cmd[cmd_index] = '\0';
           print_str_w_r(cmd, cmd_index);
           break;
@@ -186,21 +189,31 @@ int main(void) {
           // decode input cmd
           if (cmd[0] == 'M') {
             if (cmd[1] == '1') {
-              // update motor_driver1 duty cycle
-              motor_driver_set_velocity(&motor_driver1, cmd_vel);
               if (cmd_vel == -128) {
-                // if cmd is 0xF0 brake motor_driver1 (0x00 is coast mode by default)
+                // if cmd is 0x80 brake motor_driver1 (0x00 is coast mode by default)
+                print_str("Braking Motor 1\n\r");
                 motor_driver_disable(&motor_driver1);
               } else {
+                // update motor_driver1 duty cycle
+                motor_driver_set_velocity(&motor_driver1, cmd_vel);
+                print_str("Motor 1 Velocity: ");
+                sprintf(print_buf, "%d\n\r", cmd_vel);
+                print_str(print_buf);
+                print_str("Motor 1 Enabled\n\r\n");
                 motor_driver_enable(&motor_driver1);
               }
             } else if (cmd[1] == '2') {
-              // update motor_driver2 duty cycle
-              motor_driver_set_velocity(&motor_driver2, cmd_vel);
               if (cmd_vel == -128) {
-                // if cmd is 0xF0 brake motor_driver2 (0x00 is coast mode by default)
+                // if cmd is 0x80 brake motor_driver2 (0x00 is coast mode by default)
+                print_str("Braking Motor 2\n\r");
                 motor_driver_disable(&motor_driver2);
               } else {
+                // update motor_driver2 duty cycle
+                motor_driver_set_velocity(&motor_driver2, cmd_vel);
+                print_str("Motor 2 Velocity: ");
+                sprintf(print_buf, "%d\n\r", cmd_vel);
+                print_str(print_buf);
+                print_str("Motor 2 Enabled\n\r\n");
                 motor_driver_enable(&motor_driver2);
               }
             }
@@ -392,6 +405,11 @@ int hex2_to_int(char high, char low, int8_t* result) {
 }
 void print_char(char c) {
   print_buf_len = snprintf(print_buf, 100, "%c", c);
+  HAL_UART_Transmit(&huart2, (uint8_t*)print_buf, print_buf_len, 100);
+}
+
+void print_str(char* str) {
+  print_buf_len = snprintf(print_buf, 100, "%s", str);
   HAL_UART_Transmit(&huart2, (uint8_t*)print_buf, print_buf_len, 100);
 }
 
